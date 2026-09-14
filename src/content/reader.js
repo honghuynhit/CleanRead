@@ -52,6 +52,8 @@
     toast: null,
     settings: null,
     article: null,
+    annotations: [],
+    noteEditor: null,
     pageScroll: 0,
     prevOverflow: "",
     prevScrollBehavior: "",
@@ -199,6 +201,7 @@
     close: icon('<path d="M6 6l12 12M18 6L6 18"/>'),
     print: icon('<path d="M7 9V4h10v5"/><path d="M5 9h14v7h-3v4H8v-4H5z"/>'),
     copy: icon('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 011-1h9"/>'),
+    note: icon('<path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
   };
 
   function build(article, settings) {
@@ -284,6 +287,7 @@
     state.progress = root.querySelector(".cr-progress");
     state.panel = root.querySelector(".cr-panel");
     state.toast = toast;
+    state.noteEditor = null;
 
     return host;
   }
@@ -310,6 +314,11 @@
         togglePanel(btn);
       }, { expands: true })
     );
+    actions.appendChild(annotationButton("cr-btn cr-btn-mark", "A", "Tô sáng đoạn đã chọn", "highlight"));
+    actions.appendChild(annotationButton("cr-btn cr-btn-underline", "U", "Gạch dưới đoạn đã chọn", "underline"));
+    actions.appendChild(annotationButton("cr-btn cr-btn-italic", "I", "In nghiêng đoạn đã chọn", "italic"));
+    actions.appendChild(annotationButton("cr-btn cr-btn-bold", "B", "In đậm đoạn đã chọn", "bold"));
+    actions.appendChild(annotationButton("cr-btn", ICONS.note, "Ghi chú cho đoạn đã chọn", "note"));
     actions.appendChild(
       button("cr-btn", ICONS.copy, "Sao chép nội dung bài viết", copyArticle)
     );
@@ -343,6 +352,16 @@
     btn.addEventListener("click", function (event) {
       event.preventDefault();
       onClick(btn);
+    });
+    return btn;
+  }
+
+  function annotationButton(className, html, label, type) {
+    var btn = button(className, html, label, function () {
+      annotateSelection(type);
+    });
+    btn.addEventListener("mousedown", function (event) {
+      event.preventDefault();
     });
     return btn;
   }
@@ -481,6 +500,12 @@
       applySettings(state.settings);
       state.active = true;
 
+      cleanreadLoadAnnotations(location.href, function (annotations) {
+        if (!state.active) return;
+        state.annotations = annotations;
+        renderAnnotations();
+      });
+
       if (state.scroller) {
         state.scroller.addEventListener("scroll", onScroll, { passive: true });
         state.scroller.focus({ preventScroll: true });
@@ -538,6 +563,8 @@
     state.progress = null;
     state.toast = null;
     state.article = null;
+    state.annotations = [];
+    state.noteEditor = null;
 
     report(false);
   }
@@ -630,7 +657,7 @@
     }
 
     var target = event.composedPath ? event.composedPath()[0] : event.target;
-    if (target && target.tagName === "INPUT") return;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
 
     if (event.key === "+" || event.key === "=") {
       event.preventDefault();
@@ -666,6 +693,174 @@
     } catch (e) {
       if (legacyCopy(text)) done();
       else fail();
+    }
+  }
+
+  function annotateSelection(type) {
+    var selection = getSelectionOffsets();
+    if (!selection || selection.start === selection.end) {
+      showToast("Hãy chọn một đoạn văn trước");
+      return;
+    }
+    if (type === "note") {
+      openNoteEditor(selection);
+      return;
+    }
+    state.annotations.push({
+      id: annotationId(),
+      start: selection.start,
+      end: selection.end,
+      type: type,
+      note: "",
+    });
+    renderAnnotations();
+    saveAnnotations();
+    clearSelection();
+    showToast("Đã lưu đánh dấu");
+  }
+
+  function getSelectionOffsets() {
+    var body = state.root && state.root.querySelector(".cr-body");
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (!body || !selection || !selection.rangeCount || selection.isCollapsed) return null;
+    var range = selection.getRangeAt(0);
+    if (!body.contains(range.startContainer) || !body.contains(range.endContainer)) return null;
+    var startRange = document.createRange();
+    var endRange = document.createRange();
+    startRange.selectNodeContents(body);
+    startRange.setEnd(range.startContainer, range.startOffset);
+    endRange.selectNodeContents(body);
+    endRange.setEnd(range.endContainer, range.endOffset);
+    var start = startRange.toString().length;
+    var end = endRange.toString().length;
+    return { start: Math.min(start, end), end: Math.max(start, end) };
+  }
+
+  function renderAnnotations() {
+    var body = state.root && state.root.querySelector(".cr-body");
+    if (!body) return;
+    unwrapAnnotations(body);
+    state.annotations.slice().sort(function (a, b) {
+      return a.start - b.start || a.end - b.end;
+    }).forEach(function (annotation) {
+      wrapTextRange(body, annotation);
+    });
+  }
+
+  function unwrapAnnotations(body) {
+    var nodes = body.querySelectorAll(".cr-annotation");
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      var node = nodes[i];
+      while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+      node.parentNode.removeChild(node);
+    }
+  }
+
+  function wrapTextRange(body, annotation) {
+    var walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    var position = 0;
+    var node;
+    while ((node = walker.nextNode())) {
+      var nodeStart = position;
+      var nodeEnd = position + node.nodeValue.length;
+      if (nodeEnd > annotation.start && nodeStart < annotation.end) {
+        nodes.push({ node: node, start: nodeStart, end: nodeEnd });
+      }
+      position = nodeEnd;
+    }
+    nodes.forEach(function (item) {
+      var from = Math.max(0, annotation.start - item.start);
+      var to = Math.min(item.node.nodeValue.length, annotation.end - item.start);
+      if (to <= from || !item.node.parentNode) return;
+      var target = item.node;
+      if (to < target.nodeValue.length) target.splitText(to);
+      if (from > 0) target = target.splitText(from);
+      var mark = document.createElement("span");
+      mark.className = "cr-annotation cr-" + annotation.type;
+      mark.setAttribute("data-annotation-id", annotation.id);
+      if (annotation.type === "note") mark.title = annotation.note || "Ghi chú";
+      target.parentNode.insertBefore(mark, target);
+      mark.appendChild(target);
+    });
+  }
+
+  function openNoteEditor(selection) {
+    closeNoteEditor();
+    var editor = document.createElement("div");
+    editor.className = "cr-note-editor";
+    var input = document.createElement("textarea");
+    input.rows = 3;
+    input.placeholder = "Viết ghi chú cho đoạn đã chọn...";
+    input.setAttribute("aria-label", "Nội dung ghi chú");
+    var actions = document.createElement("div");
+    actions.className = "cr-note-actions";
+    var cancel = button("cr-note-cancel", "Huỷ", "Huỷ ghi chú", closeNoteEditor);
+    var save = button("cr-note-save", "Lưu", "Lưu ghi chú", function () {
+      var note = input.value.trim();
+      if (!note) {
+        input.focus();
+        return;
+      }
+      state.annotations.push({
+        id: annotationId(),
+        start: selection.start,
+        end: selection.end,
+        type: "note",
+        note: note,
+      });
+      renderAnnotations();
+      saveAnnotations();
+      closeNoteEditor();
+      clearSelection();
+      showToast("Đã lưu ghi chú");
+    });
+    actions.appendChild(cancel);
+    actions.appendChild(save);
+    editor.appendChild(input);
+    editor.appendChild(actions);
+    state.root.appendChild(editor);
+    state.noteEditor = editor;
+    input.focus();
+  }
+
+  function closeNoteEditor() {
+    if (state.noteEditor && state.noteEditor.parentNode) state.noteEditor.parentNode.removeChild(state.noteEditor);
+    state.noteEditor = null;
+  }
+
+  function clearSelection() {
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (selection) selection.removeAllRanges();
+  }
+
+  function annotationId() {
+    return String(Date.now()) + "-" + String(Math.random()).slice(2);
+  }
+
+  function annotationStorageKey(url) {
+    return "cleanread:annotations:" + url;
+  }
+
+  function cleanreadLoadAnnotations(url, callback) {
+    try {
+      chrome.storage.local.get(annotationStorageKey(url), function (stored) {
+        var value = stored && stored[annotationStorageKey(url)];
+        if (state.annotations.length) return;
+        callback(Array.isArray(value) ? value : []);
+      });
+    } catch (e) {
+      callback([]);
+    }
+  }
+
+  function saveAnnotations() {
+    try {
+      var patch = {};
+      patch[annotationStorageKey(location.href)] = state.annotations;
+      chrome.storage.local.set(patch);
+    } catch (e) {
+      showToast("Không thể lưu đánh dấu");
     }
   }
 

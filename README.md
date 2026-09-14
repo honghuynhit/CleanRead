@@ -12,7 +12,8 @@ Chế độ đọc cho Chrome (Manifest V3): trích nội dung chính của bài
 ## Dùng thế nào
 
 - Bấm biểu tượng CleanRead, rồi bấm **Bật chế độ đọc** — hoặc nhấn **Alt+R**.
-- Trong vùng đọc: nút **Aa** để chỉnh hiển thị, nút sao chép, nút in, nút thoát.
+- Trong vùng đọc: chọn một đoạn rồi dùng các nút tô sáng, gạch dưới, nghiêng, đậm hoặc ghi chú; các đánh dấu được lưu theo từng bài viết.
+- Nút **Aa** để chỉnh hiển thị, nút sao chép, nút in, nút thoát.
 - Phím tắt khi đang đọc: `Esc` thoát, `+` / `−` đổi cỡ chữ, `T` đổi nền.
 
 ## Có gì
@@ -21,6 +22,7 @@ Chế độ đọc cho Chrome (Manifest V3): trích nội dung chính của bài
 - Chỉnh cỡ chữ, giãn dòng, bề ngang cột chữ, chữ có chân / không chân, ẩn hiện ảnh. Cấu hình lưu bằng `chrome.storage.sync` nên theo tài khoản Chrome sang máy khác.
 - Xem thử ngay trong popup: khung văn bản mẫu đổi theo lựa chọn trước khi bạn bật chế độ đọc.
 - Thanh tiến độ đọc, ước lượng thời gian đọc, giữ chú thích ảnh, bảng, khối mã.
+- Đánh dấu và ghi chú trực tiếp trong bài viết, lưu bằng `chrome.storage.local` theo URL.
 - In sạch: lệnh in chỉ in bài viết, không in lại trang gốc.
 - Trang không phải bài viết (trang chủ, trang danh mục) sẽ báo rõ thay vì hiển thị một mớ tiêu đề.
 
