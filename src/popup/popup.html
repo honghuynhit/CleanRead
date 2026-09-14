@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>CleanRead</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <h1>CleanRead</h1>
+      <span class="hint" id="shortcut">Alt+R</span>
+    </header>
+
+    <button class="primary" id="toggle" type="button">Bật chế độ đọc</button>
+    <p class="note" id="note" hidden></p>
+
+    <section class="specimen" id="specimen" aria-label="Xem thử cách hiển thị">
+      <h2 id="specimenTitle">Người thợ chép tay</h2>
+      <p id="specimenBody">
+        Bản in đầu tiên đến tay người đọc vào một chiều tháng Chạp, giấy còn thơm
+        mùi mực. Ông cụ lật từng trang, dừng lại ở chỗ có dấu ngã, khẽ gật đầu.
+      </p>
+    </section>
+
+    <section class="controls">
+      <div class="row">
+        <span class="label">Nền</span>
+        <div class="seg" id="themeSeg"></div>
+      </div>
+
+      <div class="row">
+        <span class="label">Kiểu chữ</span>
+        <div class="seg" id="fontSeg"></div>
+      </div>
+
+      <div class="row">
+        <label class="label" for="fontSize">Cỡ chữ <i id="fontSizeValue"></i></label>
+        <input type="range" id="fontSize" />
+      </div>
+
+      <div class="row">
+        <label class="label" for="lineHeight">Giãn dòng <i id="lineHeightValue"></i></label>
+        <input type="range" id="lineHeight" />
+      </div>
+
+      <div class="row">
+        <label class="label" for="measure">Bề ngang <i id="measureValue"></i></label>
+        <input type="range" id="measure" />
+      </div>
+
+      <div class="row row-inline">
+        <label class="check" for="images">
+          <input type="checkbox" id="images" />
+          Hiện ảnh trong bài
+        </label>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <button class="link" id="reset" type="button">Đặt lại mặc định</button>
+      <button class="link" id="shortcutLink" type="button">Đổi phím tắt</button>
+    </footer>
+
+    <script src="../lib/settings.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

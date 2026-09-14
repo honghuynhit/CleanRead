@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "CleanRead",
+  "version": "1.0.0",
+  "description": "Đọc bài viết không quảng cáo: trích nội dung chính và trình bày lại bằng kiểu chữ dễ đọc.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "action": {
+    "default_title": "CleanRead — chế độ đọc",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "commands": {
+    "toggle-reader": {
+      "suggested_key": {
+        "default": "Alt+R",
+        "mac": "Alt+R"
+      },
+      "description": "Bật/tắt chế độ đọc trên tab hiện tại"
+    }
+  },
+  "minimum_chrome_version": "102"
+}
